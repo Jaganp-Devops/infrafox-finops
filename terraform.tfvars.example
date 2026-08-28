@@ -1,0 +1,23 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit it.
+
+aws_region    = "ap-south-1"
+environment   = "development"
+instance_type = "t3.small"
+
+# Your current public IP in /32 form. Find it with: curl -s ifconfig.me
+# NEVER set this to 0.0.0.0/0 — the variable validation will reject it anyway.
+ssh_allowed_cidr = "REPLACE_WITH_YOUR_IP/32"
+
+# Email that will receive AWS Budget threshold alerts via SNS.
+# You must confirm the SNS subscription email after the first `terraform apply`.
+budget_alert_email = "REPLACE_WITH_YOUR_EMAIL@example.com"
+
+budget_limit_usd = 100
+
+# Name of an EC2 key pair that already exists in ap-south-1.
+# Create it first with:
+#   aws ec2 create-key-pair --key-name infrafox-key --region ap-south-1 \
+#     --query 'KeyMaterial' --output text > ~/.ssh/infrafox-key.pem
+#   chmod 400 ~/.ssh/infrafox-key.pem
+key_pair_name = "infrafox-key"
