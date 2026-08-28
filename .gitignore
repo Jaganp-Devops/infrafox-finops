@@ -1,0 +1,39 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.tfplan
+crash.log
+
+# Secrets - never committed under any circumstance
+*.pem
+*.env
+.env
+.env.*
+frontend/.env
+**/duckdns.env
+secrets/
+
+# Accidental nested clone from earlier
+infrafox-finops/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Database
+*.db
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

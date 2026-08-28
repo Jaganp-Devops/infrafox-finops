@@ -4,9 +4,16 @@ InfraFox FinOps Platform - FastAPI entrypoint.
 Phase 3 scope: persistence added. /api/v1/findings now triggers a fresh
 scan AND saves it; /api/v1/findings/latest reads the last saved scan
 without re-scanning AWS; /api/v1/scans lists history (Feature #18).
+
+Phase 4: CORS middleware added to allow the React dev server (running
+on a different port, so a different origin) to call this API from the
+browser. allow_origins is a specific allowlist, not "*" - kept tight
+even in development, and will be updated again in Phase 5 once the
+real domain is live behind Nginx.
 """
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.core.logging_config import configure_logging
@@ -28,7 +35,18 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.app_name,
     description="AWS FinOps & Cloud Cost Optimization Platform",
-    version="0.3.0",
+    version="0.4.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://3.109.152.62:5173",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
