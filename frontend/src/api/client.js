@@ -1,8 +1,4 @@
-// Central API client. Every request goes through here so the backend
-// base URL only needs to change in one place - currently pointed at the
-// EC2 instance directly on port 8000; Phase 5 will switch this to a
-// relative path once Nginx reverse-proxies /api/ to the backend.
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://3.109.152.62:8000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request(path) {
   const res = await fetch(`${BASE_URL}${path}`);

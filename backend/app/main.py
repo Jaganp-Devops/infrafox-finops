@@ -1,19 +1,20 @@
 """
 InfraFox FinOps Platform - FastAPI entrypoint.
 
-Phase 3 scope: persistence added. /api/v1/findings now triggers a fresh
-scan AND saves it; /api/v1/findings/latest reads the last saved scan
-without re-scanning AWS; /api/v1/scans lists history (Feature #18).
+Phase 3: persistence added. /api/v1/findings now triggers a fresh scan
+AND saves it; /api/v1/findings/latest reads the last saved scan without
+re-scanning AWS; /api/v1/scans lists history (Feature #18).
 
 Phase 4: CORS middleware added to allow the React dev server (running
 on a different port, so a different origin) to call this API from the
-browser. allow_origins is a specific allowlist, not "*" - kept tight
-even in development, and will be updated again in Phase 5 once the
-real domain is live behind Nginx.
+browser.
+
+Phase 5: containerized, running against Postgres instead of SQLite.
 """
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.logging_config import configure_logging
@@ -35,13 +36,13 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.app_name,
     description="AWS FinOps & Cloud Cost Optimization Platform",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://3.109.152.62:5173",
+        "https://infrafox.duckdns.org",
         "http://localhost:5173",
     ],
     allow_credentials=True,
@@ -58,8 +59,8 @@ def health():
 @app.get("/ready")
 def ready(db: Session = Depends(get_db)):
     """
-    Readiness now checks both AWS connectivity and the database -
-    either failing means the app can't do its job correctly.
+    Readiness checks both AWS connectivity and the database - either
+    failing means the app can't do its job correctly.
     """
     try:
         client = get_client("ec2")
@@ -68,7 +69,7 @@ def ready(db: Session = Depends(get_db)):
         raise HTTPException(status_code=503, detail=f"AWS connectivity check failed: {e}")
 
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connectivity check failed: {e}")
 

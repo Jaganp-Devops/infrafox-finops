@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: infrafox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: infrafox
+      POSTGRES_USER: infrafox
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - infrafox-pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infrafox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: infrafox-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      INFRAFOX_DATABASE_URL: postgresql://infrafox:${POSTGRES_PASSWORD}@localhost:5432/infrafox
+      INFRAFOX_AWS_REGION: ap-south-1
+      INFRAFOX_ENVIRONMENT: production
+    # host networking: the container shares the EC2 instance's network
+    # namespace directly. This is what lets boto3 reach the instance
+    # metadata service (169.254.169.254) to pick up IAM role credentials
+    # automatically, exactly as it would running natively. Trade-off:
+    # postgres is reached via localhost instead of a service name, and
+    # the "ports:" mapping below is not used in host mode (kept removed
+    # intentionally - host networking exposes the container's ports
+    # directly on the host instead).
+    network_mode: host
+
+volumes:
+  infrafox-pgdata:
