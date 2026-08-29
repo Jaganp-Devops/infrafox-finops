@@ -39,9 +39,9 @@ resource "aws_instance" "infrafox" {
 
   root_block_device {
     volume_type           = "gp3"
-    volume_size            = var.root_volume_size_gb
-    encrypted              = true
-    delete_on_termination  = true # no orphaned volume left behind on teardown
+    volume_size           = var.root_volume_size_gb
+    encrypted             = true
+    delete_on_termination = true # no orphaned volume left behind on teardown
   }
 
   metadata_options {
