@@ -23,6 +23,14 @@ resource "aws_security_group" "infrafox_sg" {
     cidr_blocks = [var.ssh_allowed_cidr]
   }
 
+  ingress {
+    description = "SSH from GitHub Actions runners "
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # HTTPS — public, this is the actual product endpoint.
   ingress {
     description = "HTTPS (public dashboard/API via Nginx)"
