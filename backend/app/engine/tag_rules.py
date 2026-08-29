@@ -6,15 +6,15 @@ by itself, but a governance finding. Untaggable resources are exactly
 the ones nobody remembers to clean up, and they're invisible to any
 cost-allocation or showback effort.
 """
-from app.engine.rules import FinOpsRule, Finding, Severity, Confidence, RemediationType
-from app.models.resource import Ec2Instance, EbsVolume
+from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
+from app.models.resource import EbsVolume, Ec2Instance
 
 REQUIRED_TAGS = ["Owner", "Environment"]
 
 
 def _missing_tags(tags: dict[str, str]) -> list[str]:
     # Case-insensitive check - "owner" and "Owner" both count as present.
-    lower_keys = {k.lower() for k in tags.keys()}
+    lower_keys = {k.lower() for k in tags}
     return [t for t in REQUIRED_TAGS if t.lower() not in lower_keys]
 
 

@@ -12,19 +12,20 @@ browser.
 Phase 5: containerized, running against Postgres instead of SQLite.
 """
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, Depends
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.logging_config import configure_logging
-from app.core.config import settings
-from app.aws import cost_explorer, ec2_inventory, cloudwatch_metrics
+from app.aws import cloudwatch_metrics, cost_explorer, ec2_inventory
 from app.aws.session import get_client
-from app.engine.runner import run_scan
-from app.db.session import get_db, engine
-from app.db.models import Base
+from app.core.config import settings
+from app.core.logging_config import configure_logging
 from app.db import crud
+from app.db.models import Base
+from app.db.session import engine, get_db
+from app.engine.runner import run_scan
 
 configure_logging()
 

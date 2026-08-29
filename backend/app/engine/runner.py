@@ -10,14 +10,15 @@ optimization only if it's ever actually needed.
 import logging
 import time
 from datetime import datetime, timezone
+
 from pydantic import BaseModel
 
-from app.aws import ec2_inventory, cloudwatch_metrics
-from app.engine.rules import Finding
-from app.engine.ebs_rules import UnattachedVolumeRule, StaleAttachmentRule
-from app.engine.tag_rules import MissingOwnershipTagsRule
+from app.aws import cloudwatch_metrics, ec2_inventory
+from app.engine.ebs_rules import StaleAttachmentRule, UnattachedVolumeRule
 from app.engine.ec2_rules import LowUtilizationRule
 from app.engine.eip_rules import UnattachedElasticIpRule
+from app.engine.rules import Finding
+from app.engine.tag_rules import MissingOwnershipTagsRule
 
 logger = logging.getLogger(__name__)
 

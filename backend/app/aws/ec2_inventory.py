@@ -5,10 +5,11 @@ statement in Terraform. No state-changing calls exist in this file
 by design.
 """
 import logging
+
 from botocore.exceptions import ClientError
 
 from app.aws.session import get_client
-from app.models.resource import Ec2Instance, EbsVolume, ElasticIp
+from app.models.resource import EbsVolume, Ec2Instance, ElasticIp
 
 logger = logging.getLogger(__name__)
 

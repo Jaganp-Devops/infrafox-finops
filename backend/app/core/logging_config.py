@@ -4,8 +4,8 @@ grep, ship to CloudWatch, or parse later — this matters for the
 Observability section of the project (scan duration, resources scanned,
 API failures, etc. all need to be queryable, not buried in free text).
 """
-import logging
 import json
+import logging
 import sys
 from datetime import datetime, timezone
 

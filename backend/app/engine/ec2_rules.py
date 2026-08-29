@@ -7,7 +7,7 @@ candidate. This rule intentionally downgrades confidence when
 CloudWatch data is missing or thin, rather than silently skipping or
 falsely flagging.
 """
-from app.engine.rules import FinOpsRule, Finding, Severity, Confidence, RemediationType
+from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
 from app.models.resource import Ec2Instance, UtilizationSample
 
 # Rough on-demand hourly pricing for allowed instance types in ap-south-1.
