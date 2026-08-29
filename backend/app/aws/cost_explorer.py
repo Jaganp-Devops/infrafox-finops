@@ -4,11 +4,12 @@ GetDimensionValues only — matches exactly the IAM policy scope defined
 in Terraform (iam.tf, CostExplorerRead statement).
 """
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+
 from botocore.exceptions import ClientError
 
 from app.aws.session import get_client
-from app.models.cost import DailyCost, CostSummary
+from app.models.cost import CostSummary, DailyCost
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def get_daily_costs_by_service(days: int = 30) -> list[DailyCost]:
     or incomplete — this is expected and documented in ARCHITECTURE.md.
     """
     client = get_client("ce")
-    end = date.today()
+    end = datetime.now(timezone.utc).date()
     start = end - timedelta(days=days)
 
     try:
@@ -68,7 +69,7 @@ def get_cost_summary(days: int = 30) -> CostSummary:
         by_service[entry.service] = by_service.get(entry.service, 0.0) + entry.amount_usd
         total += entry.amount_usd
 
-    end = date.today()
+    end = datetime.now(timezone.utc).date()
     start = end - timedelta(days=days)
 
     return CostSummary(

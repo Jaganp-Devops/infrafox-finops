@@ -4,10 +4,10 @@ Distinct from the Pydantic models in app/models/ (API/domain shape) by
 design: the DB schema and the API contract are allowed to evolve
 independently.
 """
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Float, Integer, DateTime, JSON, ForeignKey
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()

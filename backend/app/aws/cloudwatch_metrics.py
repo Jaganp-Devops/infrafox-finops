@@ -5,6 +5,7 @@ GetMetricData, GetMetricStatistics, ListMetrics only.
 """
 import logging
 from datetime import datetime, timedelta, timezone
+
 from botocore.exceptions import ClientError
 
 from app.aws.session import get_client

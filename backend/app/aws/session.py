@@ -6,6 +6,7 @@ at all. This file exists so every client is built consistently and the
 region is never hardcoded in more than one place.
 """
 import boto3
+
 from app.core.config import settings
 
 

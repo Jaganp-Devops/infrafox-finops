@@ -8,7 +8,7 @@ EBS-002: Volume attached to a stopped instance - the instance isn't
 """
 from datetime import datetime, timezone
 
-from app.engine.rules import FinOpsRule, Finding, Severity, Confidence, RemediationType
+from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
 from app.models.resource import EbsVolume, Ec2Instance
 
 # gp3 pricing in ap-south-1 (Mumbai), approximate, per GB-month.

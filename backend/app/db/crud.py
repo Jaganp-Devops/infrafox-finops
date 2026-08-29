@@ -6,11 +6,11 @@ to or read from the database.
 """
 import logging
 from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
-from app.db.models import ScanRun, FindingRecord, AuditLogEntry
+from app.db.models import AuditLogEntry, FindingRecord, ScanRun
 from app.engine.runner import ScanResult
-from app.engine.rules import Finding
 
 logger = logging.getLogger(__name__)
 

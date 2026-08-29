@@ -5,7 +5,7 @@ before any FinOps logic touches it. This is the boundary between
 "AWS API shape" and "our domain shape."
 """
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -15,17 +15,17 @@ class Ec2Instance(BaseModel):
     state: str
     launch_time: datetime
     region: str
-    availability_zone: Optional[str] = None
+    availability_zone: str | None = None
     tags: dict[str, str] = {}
-    private_ip: Optional[str] = None
-    public_ip: Optional[str] = None
+    private_ip: str | None = None
+    public_ip: str | None = None
 
     @property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         return self.tags.get("Owner") or self.tags.get("owner")
 
     @property
-    def environment(self) -> Optional[str]:
+    def environment(self) -> str | None:
         return self.tags.get("Environment") or self.tags.get("environment")
 
 
@@ -35,14 +35,14 @@ class EbsVolume(BaseModel):
     volume_type: str
     state: str
     create_time: datetime
-    attached_instance_id: Optional[str] = None
+    attached_instance_id: str | None = None
     tags: dict[str, str] = {}
 
 
 class ElasticIp(BaseModel):
     allocation_id: str
     public_ip: str
-    associated_instance_id: Optional[str] = None
+    associated_instance_id: str | None = None
     tags: dict[str, str] = {}
 
 

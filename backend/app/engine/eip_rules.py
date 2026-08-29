@@ -4,7 +4,7 @@ that are allocated but not associated with a running instance, starting
 from minute one. This is one of the most clear-cut waste patterns in
 AWS, since there's no ambiguity about whether it's "in use."
 """
-from app.engine.rules import FinOpsRule, Finding, Severity, Confidence, RemediationType
+from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
 from app.models.resource import ElasticIp
 
 # Flat monthly cost for an unattached EIP in most regions, including

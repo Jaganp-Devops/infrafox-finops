@@ -2,6 +2,7 @@
 Normalized cost data models, mapped from Cost Explorer API responses.
 """
 from datetime import date
+
 from pydantic import BaseModel
 
 

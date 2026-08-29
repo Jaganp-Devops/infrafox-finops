@@ -1,0 +1,10 @@
+# B008: FastAPI's dependency injection system requires calling Depends()
+# in argument defaults - this is the documented, correct pattern for
+# this framework, not the mutable-default-argument anti-pattern the
+# rule is designed to catch elsewhere.
+#
+# BLE001: readiness/health-check endpoints intentionally catch broad
+# exceptions - any failure reaching a dependency should report
+# "not ready" rather than crash the endpoint or leak an unhandled 500.
+[lint]
+ignore = ["B008", "BLE001"]
