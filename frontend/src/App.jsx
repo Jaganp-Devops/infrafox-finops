@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "./api/client";
 import SummaryCards from "./components/SummaryCards";
 import FindingsList from "./components/FindingsList";
+import Ec2UsageHours from "./components/Ec2UsageHours";
 
 export default function App() {
   const [findings, setFindings] = useState(null);
@@ -15,13 +16,15 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const [scanData, costData] = await Promise.all([
-        api.getLatestFindings(),
-        api.getCostSummary(30),
-      ]);
-      setFindings(scanData.findings);
-      setLastScan(scanData);
-      setCostSummary(costData);
+	const [scanData, costData, usageData] = await Promise.all([
+	  api.getLatestFindings(),
+	  api.getCostSummary(30),
+	  api.getEc2UsageHours(30),
+	]);
+	setFindings(scanData.findings);
+	setLastScan(scanData);
+	setCostSummary(costData);
+	setUsageHours(usageData);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -91,6 +94,7 @@ export default function App() {
       )}
 
       <SummaryCards findings={findings} costSummary={costSummary} />
+      <Ec2UsageHours usageData={usageHours} />
 
       <h2 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Findings</h2>
       <FindingsList findings={findings} onSelect={setSelected} />

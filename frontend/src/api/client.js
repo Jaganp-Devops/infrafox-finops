@@ -17,4 +17,5 @@ export const api = {
   getResourceHistory: (resourceId) => request(`/api/v1/resources/${resourceId}/history`),
   getCostSummary: (days = 30) => request(`/api/v1/costs/summary?days=${days}`),
   getInstances: () => request("/api/v1/resources/instances"),
+    getEc2UsageHours: (days = 30) => request(`/api/v1/costs/ec2-usage-hours?days=${days}`),
 };
