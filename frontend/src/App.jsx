@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { api } from "./api/client";
 import SummaryCards from "./components/SummaryCards";
 import FindingsList from "./components/FindingsList";
-import Ec2UsageHours from "./components/Ec2UsageHours";
 
 export default function App() {
   const [findings, setFindings] = useState(null);
@@ -95,7 +94,6 @@ export default function App() {
       )}
 
       <SummaryCards findings={findings} costSummary={costSummary} />
-      <Ec2UsageHours usageData={usageHours} />
 
       <h2 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Findings</h2>
       <FindingsList findings={findings} onSelect={setSelected} />
