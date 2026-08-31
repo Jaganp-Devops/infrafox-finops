@@ -73,10 +73,15 @@ class LowUtilizationRule(FinOpsRule):
                 continue
 
             hourly_rate = HOURLY_USD_BY_TYPE.get(inst.instance_type)
-            # Estimate: potential savings if scheduled to run ~12h/day instead
-            # of 24h/day, a conservative and clearly-labeled assumption.
-            estimated_savings = (
-                round(hourly_rate * 12 * 30, 2) if hourly_rate is not None else None
+            # All instances are treated identically, running 24 hours/day.
+            # This is the instance's actual current monthly cost, not a
+            # hypothetical scheduling saving - since no instance is assumed
+            # to ever be turned off.
+            HOURS_PER_DAY = 24
+            DAYS_PER_MONTH = 30
+            current_monthly_cost = (
+                round(hourly_rate * HOURS_PER_DAY * DAYS_PER_MONTH, 2)
+                if hourly_rate is not None else None
             )
 
             findings.append(
@@ -107,7 +112,7 @@ class LowUtilizationRule(FinOpsRule):
                         "instance type. This is an estimate, not a guarantee - "
                         "verify actual usage patterns before acting."
                     ),
-                    estimated_monthly_savings_usd=estimated_savings,
+                    estimated_monthly_savings_usd=current_monthly_cost,
                 )
             )
 
