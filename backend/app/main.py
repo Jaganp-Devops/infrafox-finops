@@ -161,3 +161,11 @@ def scan_history(limit: int = 20, db: Session = Depends(get_db)):
 def resource_history(resource_id: str, db: Session = Depends(get_db)):
     """Drill-down: every finding ever recorded for a specific resource."""
     return crud.get_finding_history(db, resource_id)
+
+@app.get("/api/v1/costs/ec2-usage-hours")
+def ec2_usage_hours(days: int = 30):
+    """Real billed hours and real cost, per EC2 instance type - from AWS's actual billing, not an assumption."""
+    try:
+        return cost_explorer.get_ec2_usage_hours(days=days)
+    except cost_explorer.CostExplorerError as e:
+        raise HTTPException(status_code=502, detail=str(e))
