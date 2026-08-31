@@ -80,7 +80,7 @@ def get_cost_summary(days: int = 30) -> CostSummary:
         by_service={k: round(v, 4) for k, v in by_service.items()},
     )
 
-    def get_ec2_usage_hours(days: int = 30) -> dict:
+def get_ec2_usage_hours(days: int = 30) -> dict:
     """
     Returns real billed usage hours per EC2 instance type, from Cost
     Explorer's actual usage data - not an assumption, not a 24-hour
