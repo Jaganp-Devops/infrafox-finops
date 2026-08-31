@@ -11,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [lastScan, setLastScan] = useState(null);
+  const [usageHours, setUsageHours] = useState(null);
 
   async function loadLatest() {
     setLoading(true);
