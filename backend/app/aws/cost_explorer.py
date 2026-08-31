@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from botocore.exceptions import ClientError
 
+from datetime import date, datetime, timedelta, timezone
 from app.aws.session import get_client
 from app.models.cost import CostSummary, DailyCost
 
@@ -78,3 +79,45 @@ def get_cost_summary(days: int = 30) -> CostSummary:
         period_end=end,
         by_service={k: round(v, 4) for k, v in by_service.items()},
     )
+
+    def get_ec2_usage_hours(days: int = 30) -> dict:
+    """
+    Returns real billed usage hours per EC2 instance type, from Cost
+    Explorer's actual usage data - not an assumption, not a 24-hour
+    guess. This is what AWS actually charged for, in hours.
+    """
+    client = get_client("ce")
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=days)
+
+    try:
+        response = client.get_cost_and_usage(
+            TimePeriod={"Start": start.isoformat(), "End": end.isoformat()},
+            Granularity="MONTHLY",
+            Metrics=["UsageQuantity", "UnblendedCost"],
+            Filter={
+                "Dimensions": {
+                    "Key": "SERVICE",
+                    "Values": ["Amazon Elastic Compute Cloud - Compute"],
+                }
+            },
+            GroupBy=[{"Type": "DIMENSION", "Key": "INSTANCE_TYPE"}],
+        )
+    except ClientError as e:
+        logger.error(
+            "cost_explorer_usage_hours_failure",
+            extra={"extra_fields": {"error_code": e.response["Error"]["Code"]}},
+        )
+        raise CostExplorerError(f"get_cost_and_usage (usage hours) failed: {e}") from e
+
+    results = {}
+    for period in response.get("ResultsByTime", []):
+        for group in period.get("Groups", []):
+            instance_type = group["Keys"][0]
+            hours = float(group["Metrics"]["UsageQuantity"]["Amount"])
+            cost = float(group["Metrics"]["UnblendedCost"]["Amount"])
+            results[instance_type] = {
+                "billed_hours": round(hours, 2),
+                "real_cost_usd": round(cost, 2),
+            }
+    return results
