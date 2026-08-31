@@ -100,6 +100,16 @@ data "aws_iam_policy_document" "infrafox_readonly" {
   }
 
   statement {
+    sid    = "PricingReadOnly"
+    effect = "Allow"
+    actions = [
+      "pricing:GetProducts",
+      "pricing:DescribeServices",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "SSMParameterReadForSecrets"
     effect = "Allow"
     actions = [
