@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.db.models import AuditLogEntry, FindingRecord, ScanRun
+from app.engine.rules import Finding
 from app.engine.runner import ScanResult
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,12 @@ def save_scan_result(db: Session, result: ScanResult) -> ScanRun:
     was open in the previous scan but does not appear in this one is
     marked resolved - covering exactly the case seen live in testing,
     where a terminated instance's volume findings correctly disappeared.
+
+    Also prevents unbounded duplicate accumulation: if the same
+    (rule_id, resource_id) pair was already open from a prior scan and
+    is still open now, the old row is marked "superseded" (not
+    "resolved" - the issue wasn't fixed, it's just represented by a
+    newer row) before the new one is inserted.
     """
     scan_run = ScanRun(
         scan_id=result.scan_id,
@@ -38,6 +45,16 @@ def save_scan_result(db: Session, result: ScanResult) -> ScanRun:
     current_keys: set[tuple[str, str]] = set()
     for f in result.findings:
         current_keys.add((f.rule_id, f.resource_id))
+
+        # Resolve any previous OPEN record for this exact (rule, resource)
+        # pair before inserting a new one - prevents unbounded duplicate
+        # accumulation every time the same real issue is detected again.
+        db.query(FindingRecord).filter(
+            FindingRecord.rule_id == f.rule_id,
+            FindingRecord.resource_id == f.resource_id,
+            FindingRecord.status.in_(["open", "acknowledged"]),
+        ).update({"status": "superseded"})
+
         db.add(
             FindingRecord(
                 scan_run_id=scan_run.id,
@@ -79,7 +96,8 @@ def _resolve_stale_findings(db: Session, current_keys: set[tuple[str, str]]) -> 
     """
     Marks findings resolved if their (rule_id, resource_id) pair no
     longer appears in the latest scan. Only considers findings that are
-    still 'open' or 'acknowledged' - already-resolved ones are untouched.
+    still 'open' or 'acknowledged' - already-resolved or superseded ones
+    are untouched.
     """
     open_findings = (
         db.query(FindingRecord)

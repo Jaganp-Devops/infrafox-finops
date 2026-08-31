@@ -63,10 +63,9 @@ export default function FindingsList({ findings, onSelect }) {
             </div>
           </div>
           <p style={{ margin: "8px 0 4px 0" }}>{f.condition_description}</p>
-          <p style={{ margin: "4px 0", color: "#333" }}>{f.recommendation}</p>
-          {f.estimated_monthly_savings_usd != null && (
-            <p style={{ margin: "4px 0", color: "#2e7d32", fontWeight: 600 }}>
-              Estimated savings: ${f.estimated_monthly_savings_usd.toFixed(2)}/month
+          {f.evidence?.today_cost_usd != null && (
+            <p style={{ margin: "8px 0 0 0", color: "#2e7d32", fontWeight: 600 }}>
+              Today cost: ${f.evidence.today_cost_usd.toFixed(2)} | Usage for this month: ${f.evidence.usage_this_month_usd.toFixed(2)} | Total for current month: ${f.evidence.total_current_month_usd.toFixed(2)}
             </p>
           )}
         </div>
