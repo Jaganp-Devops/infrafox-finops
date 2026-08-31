@@ -7,9 +7,9 @@ not a bug in this code.
 """
 import json
 import logging
-from botocore.exceptions import ClientError
 
 import boto3
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 

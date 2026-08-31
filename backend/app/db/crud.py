@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.db.models import AuditLogEntry, FindingRecord, ScanRun
-from app.engine.rules import Finding
 from app.engine.runner import ScanResult
 
 logger = logging.getLogger(__name__)
