@@ -1,6 +1,6 @@
 """
 Cost Explorer integration. Read-only: GetCostAndUsage, GetCostForecast,
-GetDimensionValues only — matches exactly the IAM policy scope defined
+GetDimensionValues only - matches exactly the IAM policy scope defined
 in Terraform (iam.tf, CostExplorerRead statement).
 """
 import logging
@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta, timezone
 
 from botocore.exceptions import ClientError
 
-from datetime import date, datetime, timedelta, timezone
 from app.aws.session import get_client
 from app.models.cost import CostSummary, DailyCost
 
@@ -23,7 +22,7 @@ def get_daily_costs_by_service(days: int = 30) -> list[DailyCost]:
     """
     Fetches daily cost broken down by service for the last N days.
     Cost Explorer data has ~24h lag, so 'today' will typically be missing
-    or incomplete — this is expected and documented in ARCHITECTURE.md.
+    or incomplete - this is expected and documented in ARCHITECTURE.md.
     """
     client = get_client("ce")
     end = datetime.now(timezone.utc).date()
@@ -79,6 +78,7 @@ def get_cost_summary(days: int = 30) -> CostSummary:
         period_end=end,
         by_service={k: round(v, 4) for k, v in by_service.items()},
     )
+
 
 def get_ec2_usage_hours(days: int = 30) -> dict:
     """
