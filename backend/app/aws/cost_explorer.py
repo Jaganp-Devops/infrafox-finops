@@ -121,3 +121,65 @@ def get_ec2_usage_hours(days: int = 30) -> dict:
                 "real_cost_usd": round(cost, 2),
             }
     return results
+
+def get_ec2_running_total_this_month() -> dict:
+    """
+    Real EC2 compute cost, calculated in two steps:
+      1. Multiply: for each day, real hourly rate x real hours run,
+         combined across every running instance that day.
+      2. Add: sum each day's total on top of the running total, from
+         day 1 of the current calendar month through today.
+
+    This is AWS's own real daily billing data (each day's cost already
+    reflects however many instances ran and for how long) - we are not
+    recalculating AWS's math ourselves, we are summing their real daily
+    figures transparently, day by day, so the running total is visible
+    rather than a single opaque number.
+    """
+    client = get_client("ce")
+    today = datetime.now(timezone.utc).date()
+    month_start = today.replace(day=1)
+    # Cost Explorer requires Start < End strictly. When today IS the 1st of
+    # the month, month_start and today are the same date - add one day to
+    # End so the query is always valid, even on day one of a new month.
+    query_end = today + timedelta(days=1)
+
+    try:
+        response = client.get_cost_and_usage(
+            TimePeriod={"Start": month_start.isoformat(), "End": query_end.isoformat()},
+            Granularity="DAILY",
+            Metrics=["UnblendedCost"],
+            Filter={
+                "Dimensions": {
+                    "Key": "SERVICE",
+                    "Values": ["Amazon Elastic Compute Cloud - Compute"],
+                }
+            },
+        )
+    except ClientError as e:
+        logger.error(
+            "cost_explorer_running_total_failure",
+            extra={"extra_fields": {"error_code": e.response["Error"]["Code"]}},
+        )
+        raise CostExplorerError(f"get_cost_and_usage (running total) failed: {e}") from e
+
+    daily_breakdown = []
+    running_total = 0.0
+
+    for period in response.get("ResultsByTime", []):
+        day = period["TimePeriod"]["Start"]
+        day_cost = float(period["Total"]["UnblendedCost"]["Amount"])
+        running_total += day_cost  # STEP 2: add today's real cost onto the running total
+
+        daily_breakdown.append({
+            "date": day,
+            "day_cost_usd": round(day_cost, 4),
+            "running_total_usd": round(running_total, 4),
+        })
+
+    return {
+        "month_start": month_start.isoformat(),
+        "today": today.isoformat(),
+        "daily_breakdown": daily_breakdown,
+        "final_running_total_usd": round(running_total, 4),
+    }

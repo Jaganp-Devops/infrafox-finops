@@ -43,7 +43,7 @@ export default function SummaryCards({ findings, costSummary }) {
         sublabel={`${findingsBySeverity.high} high, ${findingsBySeverity.medium} medium, ${findingsBySeverity.low} low`}
       />
       <Card
-        label="Potential Monthly Savings"
+        label="Est. Monthly Cost (flagged instances)"
         value={`$${totalSavings.toFixed(2)}`}
         color="#2e7d32"
         sublabel="Estimated, not guaranteed"

@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.aws import cost_explorer
 from app.aws import cloudwatch_metrics, cost_explorer, ec2_inventory
 from app.aws.session import get_client
 from app.core.config import settings
@@ -26,6 +27,7 @@ from app.db import crud
 from app.db.models import Base
 from app.db.session import engine, get_db
 from app.engine.runner import run_scan
+from app.db.models import DailyRunningCost
 
 configure_logging()
 
@@ -76,13 +78,21 @@ def ready(db: Session = Depends(get_db)):
 
     return {"status": "ready", "aws_region": settings.aws_region}
 
-
 @app.get("/api/v1/costs/summary")
-def cost_summary(days: int = 30):
-    try:
-        return cost_explorer.get_cost_summary(days=days)
-    except cost_explorer.CostExplorerError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+def cost_summary(db: Session = Depends(get_db)):
+    """
+    Total spend this month, calculated as the accumulating sum of each
+    real day's EC2 cost (day1 + day2 + ... + today) - not a fixed
+    30-day AWS query. Reads from the running ledger built by
+    /api/v1/costs/record-today.
+    """
+    latest = db.query(DailyRunningCost).order_by(DailyRunningCost.date.desc()).first()
+    if latest is None:
+        return {"total_usd": 0.0, "date": None, "message": "No cost recorded yet - call /api/v1/costs/record-today first"}
+    return {
+        "total_usd": latest.running_total_usd,
+        "date": latest.date,
+    }
 
 
 @app.get("/api/v1/resources/instances")
@@ -169,3 +179,53 @@ def ec2_usage_hours(days: int = 30):
         return cost_explorer.get_ec2_usage_hours(days=days)
     except cost_explorer.CostExplorerError as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+@app.get("/api/v1/costs/ec2-month-to-date")
+def ec2_month_to_date():
+    """
+    Real, day-by-day EC2 compute cost, summed from day 1 of the current
+    calendar month through today. Excludes EBS, NAT, EIP, and every
+    other service - EC2 compute time only. Each day's figure is real
+    AWS billing data, not a projection.
+    """
+    try:
+        return cost_explorer.get_ec2_compute_cost_this_month()
+    except cost_explorer.CostExplorerError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.get("/api/v1/costs/ec2-running-total")
+def ec2_running_total():
+    """Real EC2 compute cost, day by day, accumulating from day 1 of the month to today."""
+    try:
+        return cost_explorer.get_ec2_running_total_this_month()
+    except cost_explorer.CostExplorerError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/api/v1/costs/record-today")
+def record_today_cost(db: Session = Depends(get_db)):
+    """
+    Pulls today's real EC2 compute cost (across all instances, combined,
+    from AWS Cost Explorer) and records it into the running ledger,
+    adding it onto the previous day's stored total.
+    """
+    try:
+        result = cost_explorer.get_ec2_running_total_this_month()
+        today_entry = result["daily_breakdown"][-1] if result["daily_breakdown"] else {"day_cost_usd": 0.0}
+        record = crud.record_daily_running_cost(db, today_entry["day_cost_usd"])
+        return {
+            "date": record.date,
+            "day_cost_usd": record.day_cost_usd,
+            "running_total_usd": record.running_total_usd,
+        }
+    except cost_explorer.CostExplorerError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/api/v1/costs/running-history")
+def running_cost_history(db: Session = Depends(get_db)):
+    """Full day-by-day ledger: date, that day's cost, and the running total through that day."""
+    history = crud.get_running_cost_history(db)
+    return [
+        {"date": h.date, "day_cost_usd": h.day_cost_usd, "running_total_usd": h.running_total_usd}
+        for h in history
+    ]

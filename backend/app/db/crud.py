@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.db.models import AuditLogEntry, FindingRecord, ScanRun
+from app.db.models import AuditLogEntry, DailyRunningCost, FindingRecord, ScanRun
 from app.engine.runner import ScanResult
 
 logger = logging.getLogger(__name__)
@@ -142,5 +142,57 @@ def get_finding_history(db: Session, resource_id: str) -> list[FindingRecord]:
         db.query(FindingRecord)
         .filter(FindingRecord.resource_id == resource_id)
         .order_by(FindingRecord.detected_at.desc())
+        .all()
+    )
+
+def record_daily_running_cost(db: Session, today_cost_usd: float) -> DailyRunningCost:
+    """
+    Records today's real EC2 cost and adds it onto the stored running
+    total. If today's date already has a row (e.g. scan run twice in
+    one day), it UPDATES that row rather than creating a duplicate -
+    the running total is recalculated as (previous day's total + today's
+    cost), never blindly incremented multiple times for the same day.
+    """
+    today_str = datetime.now(timezone.utc).date().isoformat()
+
+    yesterday_total = (
+        db.query(DailyRunningCost)
+        .filter(DailyRunningCost.date < today_str)
+        .order_by(DailyRunningCost.date.desc())
+        .first()
+    )
+    previous_running_total = yesterday_total.running_total_usd if yesterday_total else 0.0
+
+    new_running_total = round(previous_running_total + today_cost_usd, 4)
+
+    existing_today = (
+        db.query(DailyRunningCost)
+        .filter(DailyRunningCost.date == today_str)
+        .first()
+    )
+
+    if existing_today:
+        existing_today.day_cost_usd = today_cost_usd
+        existing_today.running_total_usd = new_running_total
+        record = existing_today
+    else:
+        record = DailyRunningCost(
+            date=today_str,
+            day_cost_usd=today_cost_usd,
+            running_total_usd=new_running_total,
+        )
+        db.add(record)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def get_running_cost_history(db: Session, limit: int = 31) -> list[DailyRunningCost]:
+    """Full day-by-day ledger, most recent first."""
+    return (
+        db.query(DailyRunningCost)
+        .order_by(DailyRunningCost.date.desc())
+        .limit(limit)
         .all()
     )
