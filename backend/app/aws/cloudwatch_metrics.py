@@ -1,7 +1,7 @@
 """
-CloudWatch utilization data — primarily EC2 CPUUtilization, used by the
-rule engine (Phase 2) to detect underutilized instances. Read-only:
-GetMetricData, GetMetricStatistics, ListMetrics only.
+CloudWatch utilization data - primarily EC2 CPUUtilization, used by the
+rule engine to detect underutilized instances. Read-only: GetMetricData,
+GetMetricStatistics, ListMetrics only.
 """
 import logging
 from datetime import datetime, timedelta, timezone
@@ -24,7 +24,7 @@ def get_ec2_cpu_utilization(
 ) -> UtilizationSample | None:
     """
     Fetches average and max CPUUtilization for an instance over the
-    lookback window. Returns None (not an error) if no datapoints exist —
+    lookback window. Returns None (not an error) if no datapoints exist -
     this is expected for instances younger than the lookback window, and
     the rule engine must treat 'no data' differently from 'confirmed low
     usage' (lower confidence, not a false positive).
@@ -42,7 +42,7 @@ def get_ec2_cpu_utilization(
             Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
             StartTime=start_time,
             EndTime=end_time,
-            Period=3600,  # 1-hour granularity, keeps datapoint count reasonable
+            Period=3600,
             Statistics=["Average", "Maximum"],
         )
     except ClientError as e:
@@ -77,36 +77,6 @@ def get_ec2_cpu_utilization(
         period_end=end_time,
         datapoint_count=len(datapoints),
     )
-def get_ec2_cpu_utilization_today(instance_id: str) -> float | None:
-    """
-    Average CPU for just today (last 24 hours) - a separate, shorter
-    window from the 7-day trend, so 'today' and 'this week' can be
-    shown as two distinct numbers.
-    """
-    client = get_client("cloudwatch")
-    end_time = datetime.now(timezone.utc)
-    start_time = end_time - timedelta(hours=24)
-
-    try:
-        response = client.get_metric_statistics(
-            Namespace="AWS/EC2",
-            MetricName="CPUUtilization",
-            Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
-            StartTime=start_time,
-            EndTime=end_time,
-            Period=3600,
-            Statistics=["Average"],
-        )
-    except ClientError as e:
-        logger.error("cloudwatch_today_cpu_failure", extra={"extra_fields": {"instance_id": instance_id}})
-        return None
-
-    datapoints = response.get("Datapoints", [])
-    if not datapoints:
-        return None
-
-    avg_today = sum(dp["Average"] for dp in datapoints) / len(datapoints)
-    return round(avg_today, 2)
 
 
 def get_ec2_cpu_utilization_today(instance_id: str) -> float | None:

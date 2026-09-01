@@ -18,16 +18,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.aws import cost_explorer
 from app.aws import cloudwatch_metrics, cost_explorer, ec2_inventory
 from app.aws.session import get_client
 from app.core.config import settings
 from app.core.logging_config import configure_logging
 from app.db import crud
-from app.db.models import Base
+from app.db.models import Base, DailyRunningCost
 from app.db.session import engine, get_db
 from app.engine.runner import run_scan
-from app.db.models import DailyRunningCost
 
 configure_logging()
 

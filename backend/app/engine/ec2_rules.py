@@ -7,10 +7,10 @@ candidate. This rule intentionally downgrades confidence when
 CloudWatch data is missing or thin, rather than silently skipping or
 falsely flagging.
 """
+from app.aws.cloudwatch_metrics import get_ec2_cpu_utilization_today
+from app.aws.pricing import PricingError, get_ec2_hourly_price
 from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
 from app.models.resource import Ec2Instance, UtilizationSample
-from app.aws.pricing import get_ec2_hourly_price, PricingError
-from app.aws.cloudwatch_metrics import get_ec2_cpu_utilization_today
 
 # Fallback rates, used only if the live Pricing API call fails.
 # Kept as a safety net, not the primary source of truth anymore.
