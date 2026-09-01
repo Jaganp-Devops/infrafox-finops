@@ -7,9 +7,10 @@ candidate. This rule intentionally downgrades confidence when
 CloudWatch data is missing or thin, rather than silently skipping or
 falsely flagging.
 """
-from app.aws.pricing import PricingError, get_ec2_hourly_price
 from app.engine.rules import Confidence, Finding, FinOpsRule, RemediationType, Severity
 from app.models.resource import Ec2Instance, UtilizationSample
+from app.aws.pricing import get_ec2_hourly_price, PricingError
+from app.aws.cloudwatch_metrics import get_ec2_cpu_utilization_today
 
 # Fallback rates, used only if the live Pricing API call fails.
 # Kept as a safety net, not the primary source of truth anymore.
@@ -21,7 +22,7 @@ HOURLY_USD_BY_TYPE = {
 }
 
 LOW_CPU_THRESHOLD_PERCENT = 10.0
-LOOKBACK_DAYS = 14
+LOOKBACK_DAYS = 7
 
 
 class LowUtilizationRule(FinOpsRule):
@@ -43,9 +44,6 @@ class LowUtilizationRule(FinOpsRule):
             sample = utilization_by_instance.get(inst.instance_id)
 
             if sample is None:
-                # No CloudWatch data yet - too new, or metrics not populated.
-                # Still worth surfacing, but with low confidence and no
-                # savings estimate, since we have no evidence to size it.
                 findings.append(
                     Finding(
                         rule_id=self.rule_id,
@@ -74,10 +72,6 @@ class LowUtilizationRule(FinOpsRule):
             if sample.average >= LOW_CPU_THRESHOLD_PERCENT:
                 continue
 
-            # Get the real, current hourly rate from AWS's Pricing API.
-            # Falls back to the hardcoded table only if the live call
-            # fails - never silently uses a stale number without trying
-            # the real source first.
             try:
                 hourly_rate = get_ec2_hourly_price(inst.instance_type, region="ap-south-1")
             except PricingError:
@@ -86,10 +80,6 @@ class LowUtilizationRule(FinOpsRule):
             if hourly_rate is None:
                 hourly_rate = HOURLY_USD_BY_TYPE.get(inst.instance_type)
 
-            # Honest usage calculation - based on real CloudWatch
-            # datapoints (each one represents one hour the instance was
-            # genuinely running and reporting metrics), not an assumed
-            # 24-hour or 12-hour guess.
             honest_avg_hours_per_day = round(sample.datapoint_count / LOOKBACK_DAYS, 1)
 
             today_cost = (
@@ -101,9 +91,14 @@ class LowUtilizationRule(FinOpsRule):
                 if hourly_rate is not None else None
             )
             total_current_month = (
-                round(hourly_rate * 24 * 31, 2)     
+                round(hourly_rate * 24 * 31, 2)
                 if hourly_rate is not None else None
             )
+
+            try:
+                today_cpu = get_ec2_cpu_utilization_today(inst.instance_id)
+            except Exception:
+                today_cpu = None
 
             findings.append(
                 Finding(
@@ -114,15 +109,15 @@ class LowUtilizationRule(FinOpsRule):
                     confidence=Confidence.HIGH if sample.datapoint_count >= 24 else Confidence.MEDIUM,
                     remediation_type=RemediationType.SCHEDULE_CHANGE,
                     condition_description=(
-                        f"Average CPU {sample.average}% over {sample.datapoint_count} "
-                        f"hourly datapoints. Honest average usage: "
-                        f"{honest_avg_hours_per_day}h/day (based on real "
-                        f"CloudWatch data, not assumed)."
+                        f"Average CPU: {sample.average}% (calculated over {LOOKBACK_DAYS} days) | "
+                        f"Today avg CPU: {today_cpu if today_cpu is not None else 'N/A'}% | "
+                        f"Avg runtime: {honest_avg_hours_per_day}h/day (calculated over {LOOKBACK_DAYS} days)"
                     ),
                     evidence={
                         "instance_id": inst.instance_id,
                         "instance_type": inst.instance_type,
                         "average_cpu_percent": sample.average,
+                        "today_avg_cpu_percent": today_cpu,
                         "max_cpu_percent": sample.maximum,
                         "datapoint_count": sample.datapoint_count,
                         "honest_avg_hours_per_day": honest_avg_hours_per_day,

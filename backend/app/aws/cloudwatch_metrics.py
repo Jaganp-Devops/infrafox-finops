@@ -77,3 +77,68 @@ def get_ec2_cpu_utilization(
         period_end=end_time,
         datapoint_count=len(datapoints),
     )
+def get_ec2_cpu_utilization_today(instance_id: str) -> float | None:
+    """
+    Average CPU for just today (last 24 hours) - a separate, shorter
+    window from the 7-day trend, so 'today' and 'this week' can be
+    shown as two distinct numbers.
+    """
+    client = get_client("cloudwatch")
+    end_time = datetime.now(timezone.utc)
+    start_time = end_time - timedelta(hours=24)
+
+    try:
+        response = client.get_metric_statistics(
+            Namespace="AWS/EC2",
+            MetricName="CPUUtilization",
+            Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
+            StartTime=start_time,
+            EndTime=end_time,
+            Period=3600,
+            Statistics=["Average"],
+        )
+    except ClientError as e:
+        logger.error("cloudwatch_today_cpu_failure", extra={"extra_fields": {"instance_id": instance_id}})
+        return None
+
+    datapoints = response.get("Datapoints", [])
+    if not datapoints:
+        return None
+
+    avg_today = sum(dp["Average"] for dp in datapoints) / len(datapoints)
+    return round(avg_today, 2)
+
+
+def get_ec2_cpu_utilization_today(instance_id: str) -> float | None:
+    """
+    Average CPU for just the last 24 hours - a separate, shorter window
+    from the multi-day trend, so 'today' and 'this week' can be shown
+    as two distinct, honestly-labeled numbers.
+    """
+    client = get_client("cloudwatch")
+    end_time = datetime.now(timezone.utc)
+    start_time = end_time - timedelta(hours=24)
+
+    try:
+        response = client.get_metric_statistics(
+            Namespace="AWS/EC2",
+            MetricName="CPUUtilization",
+            Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
+            StartTime=start_time,
+            EndTime=end_time,
+            Period=3600,
+            Statistics=["Average"],
+        )
+    except ClientError as e:
+        logger.error(
+            "cloudwatch_today_cpu_failure",
+            extra={"extra_fields": {"instance_id": instance_id, "error_code": e.response["Error"]["Code"]}},
+        )
+        return None
+
+    datapoints = response.get("Datapoints", [])
+    if not datapoints:
+        return None
+
+    avg_today = sum(dp["Average"] for dp in datapoints) / len(datapoints)
+    return round(avg_today, 2)

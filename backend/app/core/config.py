@@ -11,8 +11,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     # Scan behavior
-    cloudwatch_lookback_days: int = 14
-
+    cloudwatch_lookback_days: int = 7
     # Phase 3: persistence. Defaults to a local SQLite file so the app
     # runs with zero extra setup during development; docker-compose.yml
     # (Phase 5) overrides this to point at the containerized Postgres.
